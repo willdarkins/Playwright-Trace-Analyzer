@@ -58,4 +58,63 @@ program
     }
   });
 
+program
+  .command('filter <tracePath>')
+  .description('Filter trace events by type')
+  .option('-u, --url <substring>', 'only include network events whose URL contains this')
+  .option('-t, --type <type>', 'only include events of this type (e.g. request, response)')
+    .action(async (tracePath, options) => {
+    try {
+      const buffer = await fs.promises.readFile(tracePath);
+      console.log(chalk.green(`Loaded ${tracePath} (${buffer.length} bytes)`));
+
+      const zip = await JSZip.loadAsync(buffer);
+      const traceKey = Object.keys(zip.files).find(k => k.endsWith('trace.trace'));
+      if (!traceKey) {
+        console.error(chalk.red('❌  No trace.trace file found in ZIP'));
+        process.exit(1);
+      }
+
+      // 3) Parse NDJSON into `records`
+          const text = await zip.files[traceKey].async('string');
+    const lines   = text.split('\n').filter(l => l.trim());
+    const records = lines.map(l => JSON.parse(l));
+
+        // 4) Identify the trace’s relative start time from context-options
+    const meta = records[0];
+    const baseWall    = meta.wallTime;
+    const baseMonoMs  = meta.monotonicTime * 1000;
+    const traceStart  = baseWall - baseMonoMs;
+
+        // 5) Filter only actual events (those with timestamps)
+    const events = records.filter(r => typeof r.timestamp === 'number');
+
+      // 6) Apply user filters  
+    const filtered = records.filter(r => {
+  if (typeof r.timestamp !== 'number') return false;
+  if (options.url && !r.url?.includes(options.url)) return false;
+  if (options.type && r.type !== options.type) return false;
+  return true;
+});
+
+    // 7) Print matches
+    if (!filtered.length) {
+      console.log(chalk.yellow('No events matched your criteria.'));
+      return;
+    }
+    console.log(chalk.blue(`\nMatched ${filtered.length} events:\n`));
+    filtered.forEach(r => {
+      const relMs = (r.timestamp).toFixed(0).padStart(5);
+      const absTime = new Date(traceStart + r.timestamp).toLocaleTimeString();
+      console.log(
+        ` ${relMs} ms  ${absTime}  ${r.type.padEnd(15)}${r.url || ''}`
+      );
+    });
+
+    }catch (e) {
+      console.error(chalk.red('Error reading trace:'), e.message);
+      process.exit(1);
+    }
+  }); 
+  
 program.parse(process.argv);
