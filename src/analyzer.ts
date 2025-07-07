@@ -1,0 +1,72 @@
+// src/analyzer.ts
+import fs from 'fs';
+import JSZip from 'jszip';
+
+export interface TraceRecord {
+  wallTime?: number;
+  monotonicTime?: number;
+  timestamp?: number;
+  type?: string;
+  [key: string]: any;
+}
+
+export interface TraceSummary {
+  totalEvents: number;
+  types: Record<string, number>;
+  durationMs: number;
+  realStart: Date;
+  realEnd: Date;
+}
+
+export async function loadTraceRecords(traceZipPath: string): Promise<TraceRecord[]> {
+  const buffer = await fs.promises.readFile(traceZipPath);
+  const zip = await JSZip.loadAsync(buffer);
+
+  // Match any file ending in "trace.trace"
+  const traceEntry = Object.keys(zip.files).find(name =>
+    name.endsWith('trace.trace')
+  );
+
+  if (!traceEntry) {
+    throw new Error(`No ".trace" file found in ${traceZipPath}`);
+  }
+
+  const ndjson = await zip.files[traceEntry].async('string');
+  return ndjson
+    .split('\n')
+    .filter(line => line.trim() !== '')
+    .map(line => JSON.parse(line) as TraceRecord);
+}
+
+export function summarizeRecords(records: TraceRecord[]): TraceSummary {
+  const meta = records.find(
+    r => typeof r.wallTime === 'number' && typeof r.monotonicTime === 'number'
+  );
+  if (!meta) throw new Error('Missing trace metadata');
+
+  const baseWall = meta.wallTime!;
+  const baseMono = meta.monotonicTime! * 1000;
+  const startEpoch = baseWall - baseMono;
+
+  const events = records.filter(r => typeof r.timestamp === 'number');
+  const times = events.map(r => r.timestamp!);
+  const minTs = Math.min(...times);
+  const maxTs = Math.max(...times);
+
+  const realStart = new Date(startEpoch + minTs);
+  const realEnd   = new Date(startEpoch + maxTs);
+
+  const countByType = events.reduce<Record<string, number>>((acc, r) => {
+    const t = r.type || 'unknown';
+    acc[t] = (acc[t] || 0) + 1;
+    return acc;
+  }, {});
+
+  return {
+    totalEvents: events.length,
+    types:       countByType,
+    durationMs:  maxTs - minTs,
+    realStart,
+    realEnd,
+  };
+}
