@@ -2,7 +2,7 @@
 import fs from 'fs';
 import JSZip from 'jszip';
 
-async function main() {
+async function summary() {
   const tracePath = process.argv[2];
   if (!tracePath) {
     console.error('Usage: pw-trace-analyzer <trace.zip>');
@@ -15,7 +15,7 @@ async function main() {
   console.log(`Found ${entries.length} entries in ${tracePath}`);
 }
 
-main().catch(err => {
+summary().catch(err => {
   console.error('✖ Error:', err);
   process.exit(1);
 });
