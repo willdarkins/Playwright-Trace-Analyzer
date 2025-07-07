@@ -116,5 +116,23 @@ program
       process.exit(1);
     }
   }); 
+
+  program
+  .command('types <tracePath>')
+  .description('List all unique record.type values in the trace')
+  .action(async (tracePath) => {
+    const buffer = await fs.promises.readFile(tracePath);
+    const zip    = await JSZip.loadAsync(buffer);
+    const key    = Object.keys(zip.files).find(k => k.endsWith('trace.trace'));
+    const text   = await zip.files[key].async('string');
+    const records= text.split('\n').filter(l=>l.trim()).map(l=>JSON.parse(l));
+    const types  = new Set(records.filter(r=>r.type).map(r=>r.type));
+console.log(chalk.blue('\nTypes in trace:'));
+[...types]
+  .sort()
+  .forEach(type => {
+    console.log(`  • ${type}`);
+  });
+  });
   
 program.parse(process.argv);
