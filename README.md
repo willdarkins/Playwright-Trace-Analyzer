@@ -47,16 +47,16 @@ In this hackathon, we aimed to build a **QA Friendly** tool that:
    ```bash
    npx playwright test tests/network-trace.spec.ts
    ```
-   Code produces trace ZIPs under `test-results/` by default
+   Code produces trace ZIPs under `test-results/` by default/n
    This can be edited...
 
-3. **Build & Link**  
+4. **Build & Link**  
    ```bash
    npm run build
    npm link
    ```
 
-4. **Launch the CLI**  
+5. **Launch the CLI**  
    ```bash
    pw-trace-cli
    ```
