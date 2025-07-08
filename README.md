@@ -47,8 +47,7 @@ In this hackathon, we aimed to build a **QA Friendly** tool that:
    ```bash
    npx playwright test tests/network-trace.spec.ts
    ```
-   Code produces trace ZIPs under `test-results/` by default/n
-   This can be edited...
+   Code produces trace ZIPs under `test-results/` by default... This can be edited
 
 4. **Build & Link**  
    ```bash
