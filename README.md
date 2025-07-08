@@ -36,7 +36,7 @@ In this hackathon, we aimed to build a **QA Friendly** tool that:
 
 ## 🚀 Setup & Run
 
-1. **Clone & Install**  
+1. **Clone & Install - ssh**  
    ```bash
    git clone git@github.com:willdarkins/Playwright-Trace-Analyzer.git
    cd pw-trace-cli
